@@ -32,4 +32,27 @@ class Character {
       width, height // Taille du rectangle destination (c'est la taille du personnage)
     );
   }
+
+  Map getAdjCoords(num direction) {
+    var coords = { 'x': x, 'y': y };
+
+    if (direction == DIRECTION.UP) {
+      coords['y']--;
+    } else if (direction == DIRECTION.DOWN) {
+      coords['y']++;
+    } else if (direction == DIRECTION.LEFT) {
+      coords['x']--;
+    } else if (direction == DIRECTION.RIGHT) {
+      coords['x']++;
+    }
+
+    return coords;
+  }
+
+  bool move(num direction, GameMap map) {
+    this.direction = direction;
+
+    var nextPosition = getAdjCoords(direction);
+  }
+
 }
