@@ -8,6 +8,7 @@ part 'game.dart';
 part 'map.dart';
 part 'tileset.dart';
 part 'character.dart';
+part 'keyboard.dart';
 
 void main() {
   new Game().runWhenReady();

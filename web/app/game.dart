@@ -13,24 +13,22 @@ class Game {
   CanvasElement canvas;
   Tileset ts;
   GameMap map;
+  Character player;
   List<Character> characters;
-  bool ready;
+  Keyboard keyboard;
 
   Game() {
+    keyboard = new Keyboard();
     canvas = querySelector("#game_canvas");
     ctx = canvas.getContext('2d');
 
     map = new GameMap('first');
-    characters = [
-      new Character('perso1', 7, 14, DIRECTION['UP']),
-      new Character('perso1', 7, 0, DIRECTION['DOWN']),
-      new Character('perso1', 0, 7, DIRECTION['RIGHT']),
-      new Character('perso1', 14, 7, DIRECTION['LEFT'])
-    ];
+    characters = [];
+    player = new Character('perso1', 7, 14, DIRECTION['DOWN']);
   }
 
   void runWhenReady() {
-    var futures = [map.ready()]
+    var futures = [map.ready(), player.ready()]
       ..addAll(characters.map((Character c) {
         return c.ready();
       }));
@@ -38,19 +36,32 @@ class Game {
     Future.wait(futures).then((_) {
       canvas.width  = map.getWidth() * 32;
       canvas.height = map.getHeight() * 32;
-      window.requestAnimationFrame(render);
+      window.requestAnimationFrame(renderLoop);
     });
   }
 
-  void render(double time) {
+  void renderLoop(double time) {
+    moves();
     map.drawMap();
+    player.drawCharacter();
     for(var i = 0; i < characters.length ; i++) {
       characters[i].drawCharacter();
     }
-    //window.requestAnimationFrame(render);
+    window.requestAnimationFrame(renderLoop);
   }
 
   void addCharacter(Character char) {
     characters.add(char);
+  }
+
+  void moves() {
+    if (keyboard.isPressed(KeyCode.A)) player.move(DIRECTION['LEFT'], map);
+    if (keyboard.isPressed(KeyCode.D)) player.move(DIRECTION['RIGHT'], map);
+    if (keyboard.isPressed(KeyCode.W)) player.move(DIRECTION['UP'], map);
+    if (keyboard.isPressed(KeyCode.S)) player.move(DIRECTION['DOWN'], map);
+
+    if (keyboard.areNotPressed([KeyCode.A, KeyCode.D, KeyCode.W, KeyCode.S])) {
+      player.animationState = -1;
+    }
   }
 }
