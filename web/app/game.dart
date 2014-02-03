@@ -1,67 +1,59 @@
 part of blob;
 
-CanvasRenderingContext2D ctx;
+CanvasRenderingContext2D ctx, ctx2;
+CanvasElement canvas, canvas2;
 
 final DIRECTION = {
-  'DOWN': 0,
-  'LEFT': 1,
-  'RIGHT': 2,
-  'UP': 3
+  'UP': 0,
+  'RIGHT': 1,
+  'DOWN': 2,
+  'LEFT': 3
 };
 
 class Game {
   CanvasElement canvas;
-  Tileset ts;
-  GameMap map;
-  Character player;
-  List<Character> characters;
   Keyboard keyboard;
+  Camera camera;
+  World world;
 
   Game() {
     keyboard = new Keyboard();
-    canvas = querySelector("#game_canvas");
+    canvas = querySelector("#global_canvas");
+    canvas2 = querySelector("#game_canvas");
     ctx = canvas.getContext('2d');
-
-    map = new GameMap('first');
-    characters = [];
-    player = new Character('perso1', 7, 14, DIRECTION['DOWN']);
+    ctx2 = canvas2.getContext('2d');
+    camera = new Camera(10, 30);
+//    canvas.width  = Camera.width;
+//    canvas.height = Camera.height;
+    world = new World('first');
   }
 
   void runWhenReady() {
-    var futures = [map.ready(), player.ready()]
-      ..addAll(characters.map((Character c) {
-        return c.ready();
-      }));
-
-    Future.wait(futures).then((_) {
-      canvas.width  = map.getWidth() * 32;
-      canvas.height = map.getHeight() * 32;
+    Future.wait(world.ready()).then((_) {
+//      canvas.width  = map.getWidth();
+//      canvas.height = map.getHeight();
       window.requestAnimationFrame(renderLoop);
     });
   }
 
   void renderLoop(double time) {
     moves();
-    map.drawMap();
-    player.drawCharacter();
-    for(var i = 0; i < characters.length ; i++) {
-      characters[i].drawCharacter();
-    }
+    camera.draw(world);
     window.requestAnimationFrame(renderLoop);
   }
 
-  void addCharacter(Character char) {
-    characters.add(char);
-  }
-
   void moves() {
-    if (keyboard.isPressed(KeyCode.A)) player.move(DIRECTION['LEFT'], map);
-    if (keyboard.isPressed(KeyCode.D)) player.move(DIRECTION['RIGHT'], map);
-    if (keyboard.isPressed(KeyCode.W)) player.move(DIRECTION['UP'], map);
-    if (keyboard.isPressed(KeyCode.S)) player.move(DIRECTION['DOWN'], map);
+    var directions = { 'x': 0, 'y': 0 };
+    if (keyboard.isPressed(KeyCode.W)) directions['y'] = -1;
+    if (keyboard.isPressed(KeyCode.D)) directions['x'] = 1;
+    if (keyboard.isPressed(KeyCode.S)) directions['y'] = 1;
+    if (keyboard.isPressed(KeyCode.A)) directions['x'] = -1;
 
-    if (keyboard.areNotPressed([KeyCode.A, KeyCode.D, KeyCode.W, KeyCode.S])) {
-      player.animationState = -1;
+    if (keyboard.areNotPressed([KeyCode.W, KeyCode.D, KeyCode.S, KeyCode.A])) {
+      world.player.animationState = -1;
     }
+
+    world.player.move(directions, world.map);
+    camera.track(world.player);
   }
 }

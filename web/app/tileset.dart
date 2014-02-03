@@ -7,7 +7,7 @@ class Tileset {
   Tileset(String name) {
     width = 32;
     image = new ImageElement()
-      ..src = 'tilesets/$name.png';
+      ..src = 'sprites/$name.png';
   }
 
   Future ready() {

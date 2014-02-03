@@ -1,89 +1,64 @@
 part of blob;
 
 const ANIMATION_LENGTH = 4;
-const MOVEMENT_LENGTH = 15;
+const MOVEMENT_SPEED = 36;
+const DX = 4;
 
-class Character {
+class Character extends GameEntity {
   String name;
-  num x, y, direction, width, height;
-  ImageElement image;
+  num x, y, width, height, direction;
+  SpriteHandler spriteh;
   num animationState;
 
-  Character(String name, num x, num y, num direction) {
-    this.name = name;
-    this.x = x;
-    this.y = y;
-    this.direction = direction;
+  Character(this.name, this.x, this.y, this.direction) {
     animationState = -1; // < 0 == static character
-
-    image = new ImageElement()
-      ..src = 'sprites/$name.png';
+    spriteh = new SpriteHandler(name);
   }
 
-  Future ready() {
-    return image.onLoad.first.then((_) {
-      width = image.width / 4;
-      height = image.height / 4;
-    });
-  }
+  Future ready() => spriteh.ready().then((_) {
+    width = spriteh.spriteMap['properties']['dx'];
+    height = spriteh.spriteMap['properties']['dy'];
+  });
 
-  void drawCharacter() {
-    var frame = 0, dx = 0, dy = 0;
-    if (animationState >= MOVEMENT_LENGTH) {
+  void draw() {
+    var frame = 0;
+    if (animationState >= MOVEMENT_SPEED) {
+      // Limit the animation speed
       animationState = -1;
     } else if (animationState >= 0) {
       frame = (animationState ~/ ANIMATION_LENGTH) % 4;
-      var pixelsToGo = 32 - (32 * animationState / MOVEMENT_LENGTH);
-      if (direction == DIRECTION['UP']) {
-        dy = pixelsToGo;
-      } else if (direction == DIRECTION['DOWN']) {
-        dy = -pixelsToGo;
-      } else if (direction == DIRECTION['LEFT']) {
-        dx = pixelsToGo;
-      } else if (direction == DIRECTION['RIGHT']) {
-        dx = -pixelsToGo;
-      }
       animationState++;
     }
-    ctx.drawImageScaledFromSource(
-      image,
-      width * frame, direction * height, // Point d'origine du rectangle source à prendre dans notre image
-      width, height, // Taille du rectangle source (c'est la taille du personnage)
-      (x * 32) - (width / 2) + 16 + dx, (y * 32) - height + 24 + dy, // Point de destination (dépend de la taille du personnage)
-      width, height // Taille du rectangle destination (c'est la taille du personnage)
-    );
+    spriteh.draw(ctx, x, y, 'directions', direction, frame);
   }
 
-  Map getAdjCoords(num direction) {
+  Map getNextCoords(Map directions) {
     var coords = { 'x': x, 'y': y };
-    if (direction == DIRECTION['UP']) {
-      coords['y']--;
-    } else if (direction == DIRECTION['DOWN']) {
-      coords['y']++;
-    } else if (direction == DIRECTION['LEFT']) {
-      coords['x']--;
-    } else if (direction == DIRECTION['RIGHT']) {
-      coords['x']++;
-    }
+    coords['x'] += directions['x'] * DX;
+    coords['y'] += directions['y'] * DX;
     return coords;
   }
 
-  bool move(num direction, GameMap map) {
-    // Don't move if a move is already in process
-    if (animationState >= 0) return false;
+  bool move(Map directions, GameMap map) {
+    var nox, noy;
 
-    this.direction = direction;
+    // UGLY direction detection
+    if (directions['x'] != 0) { direction = directions['x'] % 4; }
+    else if (directions['y'] == -1) { direction = 0; }
+    else if (directions['y'] == 1) { direction = 2; }
+    // else { keep the previous one }
 
-    var nextPos = getAdjCoords(direction);
-    if (nextPos['x'] < 0 || nextPos['y'] < 0 ||
-        nextPos['x'] >= map.getWidth() || nextPos['y'] >= map.getHeight()) {
+    var nextPos = getNextCoords(directions);
+    nox = nextPos['x'] < 0 || nextPos['x'] + width > map.getWidth();
+    noy = nextPos['y'] < 0 || nextPos['y'] + height > map.getHeight();
+
+    if (nox && noy) {
       animationState = -1;
       return false;
     }
 
-    animationState = 1; // mobile
-    x = nextPos['x'];
-    y = nextPos['y'];
+    if (!nox) x = nextPos['x'];
+    if (!noy) y = nextPos['y'];
     return true;
   }
 
